@@ -15,8 +15,24 @@ def get_dominant_hue(hues):
 
     return hue_color
 
-def main(tolerance=15):
-    images = ['corvo', 'corvos', 'formas', 'rainha']
+def create_mask(hue_color, tolerance, hues, values, output_path):
+    min_green = hue_color - tolerance
+    max_green = hue_color + tolerance
+    
+    # Criando Mascara
+    mask_hue = cv2.inRange(hues, min_green, max_green)
+    # cv2.imwrite(output_path + 'mask_hue.png', mask_hue)
+
+    mask_val = cv2.inRange(values, 100, 255)
+    # cv2.imwrite(output_path + 'mask_val.png', mask_val)
+
+    mask = cv2.bitwise_and(mask_hue, mask_val)
+    # cv2.imwrite(output_path + 'mask.png', mask)
+
+    return mask
+
+def main(tolerance=13):
+    images = ['corvo', 'corvos', 'formas', 'rainha', 'spider', 'mamaco']
     background = cv2.imread('images/background.bmp')
     for img_name in images:
         # Criando pasta de output
@@ -37,44 +53,27 @@ def main(tolerance=15):
         
         hues, _, values = cv2.split(img_hsv)
 
-        hue_color = get_dominant_hue(hues)
+        dominant_hue = get_dominant_hue(hues)
 
-        min_green = hue_color - tolerance
-        max_green = hue_color + tolerance
-
-        # Criando Mascara
-        mask_hue = cv2.inRange(hues, min_green, max_green)
-        cv2.imwrite(output_path + 'mask_hue.png', mask_hue)
-
-        mask_val = cv2.inRange(values, 80, 255)
-        cv2.imwrite(output_path + 'mask_val.png', mask_val)
-
-        mask = cv2.bitwise_and(mask_hue, mask_val)
-        cv2.imwrite(output_path + 'mask.png', mask)
+        mask = create_mask(dominant_hue, tolerance, hues, values, output_path)
 
         # Invertendo mascara
         mask_inv = cv2.bitwise_not(mask)
 
         # Aplicando mascara na imagem 
         mask_aplly_img = cv2.bitwise_and(img, img, mask=mask_inv)
-        cv2.imwrite(output_path + 'img_removed_green.png', mask_aplly_img)
+        # cv2.imwrite(output_path + 'img_removed_green.png', mask_aplly_img)
 
         # Aplicando mascara no backgroud
         background_rmv = cv2.bitwise_and(background_resized, background_resized, mask=mask)
         # cv2.imwrite('background_rmv.png', background_rmv)
 
-        gray = cv2.cvtColor(mask_aplly_img, cv2.COLOR_BGR2GRAY)
-        hsv_gray = cv2.cvtColor(img_hsv, cv2.COLOR_BGR2GRAY)
+        result_before_aa = cv2.add(mask_aplly_img, background_rmv)
 
-        gauss = cv2.GaussianBlur(gray, (3, 3), 0) 
-        canny = cv2.Canny(gray, 100, 200) 
-
-        result = cv2.add(mask_aplly_img, background_rmv)
-        
+        cv2.imwrite(output_path + 'result_before_aa.png', result_before_aa)
         cv2.imwrite(output_path + f'binarizacao_{img_name}.png', mask_inv)
-        cv2.imwrite(output_path + f'gauss_{img_name}.png', gauss)
-        cv2.imwrite(output_path + f'canny_{img_name}.png', canny)
-        cv2.imwrite(output_path + 'resultado_final.png', result)
+        # cv2.imwrite(output_path + f'gauss_{img_name}.png', blur)
+        # cv2.imwrite(output_path + 'resultado_final.png', img_result)
 
 if __name__ == '__main__':
     # tolerance = abs(int(input('hue tolerance: ')))
