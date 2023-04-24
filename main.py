@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+from glob import glob
 
 def get_dominant_hue(hues):
     unique_hue, counts = np.unique(hues, return_counts=True)
@@ -31,9 +32,16 @@ def create_mask(hue_color, tolerance, hues, values, output_path):
 
     return mask
 
+def gen_images(folder_path):
+    files = glob(folder_path + '/*')
+    for file in files:
+        if os.path.basename(file) != "background.bmp":
+            yield os.path.basename(file)
+
 def main(tolerance=13):
-    images = ['corvo', 'corvos', 'formas', 'rainha', 'spider', 'mamaco']
     img_background = cv2.imread('images/background.bmp')
+    images = gen_images('images')
+
     for img_name in images:
 
         # Criando pasta de output
@@ -42,7 +50,7 @@ def main(tolerance=13):
             os.makedirs(output_path)
 
         # Carregando imagem
-        img = cv2.imread(f'images/{img_name}.bmp')
+        img = cv2.imread(f'images/{img_name}')
 
         # Redimensionando imagem
         height, width, _ = img.shape
@@ -82,7 +90,6 @@ def main(tolerance=13):
         blurred_edges_bgr = cv2.cvtColor(blurred_edges, cv2.COLOR_GRAY2BGR)
 
         anti_aliased_image = cv2.addWeighted(img_mask_aplly, 1, blurred_edges_bgr, 0.65, 0)
-        cv2.imwrite(output_path + 'anti_aliased_image.png', anti_aliased_image)
 
         img_chroma_key_aa = cv2.add(anti_aliased_image, img_background_rmv)
 
